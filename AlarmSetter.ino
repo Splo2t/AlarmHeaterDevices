@@ -15,12 +15,16 @@ String tempDataString;
 String dataString[50];
 String ssid = "107-408";
 String pass = "72077207";
+const int SET_TIME = 10;
 const int SSID_ADDR = 1;
-const int PASS_ADDR = 50;
-const int SSID_SIZE_ADDR = 100;
-const int PASS_SIZE_ADDR = 110;
+const int PASS_ADDR = 30;
+const int SSID_SIZE_ADDR = 29;
+const int PASS_SIZE_ADDR = 50;
 const int STATE_ADDR = 0;
-const int relayPin = 10;
+const int TIME_DATA_COUNT_ADDR = 51; //flag사용해서 저장 예정
+const int FIRST_TIME_DATA_ADDR = 52; //12칸씩 사용예정
+const int relayPin = 16;
+
 int deviceActive;
 int preDeviceActive = 0;
 int i;
@@ -140,7 +144,7 @@ void savepage() {
     EEPROM.commit();
     delay(100);
     Web.send(200,"text/html",temp);
-    delay(5000);
+    delay(10000);
   EspClass esp;
   esp.restart(); 
   
@@ -232,11 +236,34 @@ void initialSetting() {
   String getKoreaTime(){
     String timeData = getTime();
     String returnString = "";
+    String day;
     int hour =  (timeData.substring(17,19).toInt()+9)%24;
     int minute = timeData.substring(20,22).toInt();
     hour <10 ? returnString +="0"+String(hour) : returnString += String(hour);
     minute < 10 ? returnString+="0"+String(minute):returnString += String(minute);
-    return returnString;
+    if(timeData.equals(0,3) == "Mon"){
+      day = "0";
+    }
+    else if(timeData.equals(0,3) == "Tue"){
+      day = "1";
+    }
+    else if(timeData.equals(0,3) == "Wed"){
+      day = "2";
+    }
+    else if(timeData.equals(0,3) == "Thu"){
+      day = "3";
+    }
+    else if(timeData.equals(0,3) == "Fri"){
+      day = "4";
+    }
+    else if(timeData.equals(0,3) == "Sat"){
+      day = "5";
+    }
+    else if(timeData.equals(0,3) == "Sun"){
+      day = "6";
+    }
+   
+    return returnString+day;
   }
 
   int searchDataAndDelete(String s){
@@ -251,11 +278,20 @@ void initialSetting() {
     return 0;
   }
 
-  int isAlarmRing(String nowTime, String targetTime){
-    int time1 = nowTime.toInt();
-    int time2 = targetTime.toInt();
-    if(0<(time2 - time1) && (time2 - time1) <= 5){
-      return 1;
+   int isAlarmRing(String nowTime, String targetTime){
+    int time1 = nowTime.substring(0,4).toInt();
+    time1 = time1/100*60 + time1%100;
+    int time2 = targetTime.substring(0,4).toInt();
+    time2 = time2/100*60 + time2%100;
+    String targetDay = targetTime.substring(4);
+    String nowDay = nowTime.substring(4);
+    for(int i = 0; i <= targetDay.length();i++){
+      if(0<(time2 - time1) && (time2 - time1) <= SET_TIME && nowDay.equals(targetDay.substring(i,i+1))){
+         return 1;
+       }
+       else if(0<(time2 - time1) && (time2 - time1) <= SET_TIME && nowDay.substring(0).equals("")){
+         return 1;
+       }
     }
     return 0;
   }
@@ -268,7 +304,6 @@ void initialSetting() {
     digitalWrite(relayPin,LOW);
   }
   void alarmThread(){
-    
     deviceActive= 0;
     for(i = 0; i < dataStringIndex; i++){
       if(isAlarmRing(getKoreaTime(),dataString[i])){
@@ -277,7 +312,6 @@ void initialSetting() {
            preDeviceActive = 1;
            deviceOn();
            Serial.println("deviceOn");
-           
         }
         return;
        }
@@ -341,7 +375,7 @@ void setup() {
 
   void loop() {
     // 메인루프입니다
-    if(EEPROM.read(0) != 40) {
+    if(EEPROM.read(STATE_ADDR) != 40) {
       Web.handleClient();
     } else {
       while(!client.connected()) {
@@ -369,15 +403,14 @@ void setup() {
            }
           
           else if(tempDataString.charAt(tempDataString.length()-1) == 'r'){
-            if(searchDataAndDelete(tempDataString.substring(0,2) + tempDataString.substring(3,5)) == 1){
+            if(searchDataAndDelete(tempDataString.substring(0,2) + tempDataString.substring(3,5) + tempDataString.substring(6,tempDataString.indexOf("a")) == 1){
               Serial.println("sucess!! Delete:" + tempDataString);
               tempDataString = "";
             }
           }
-          
-          
+         
          else if(tempDataString.charAt(tempDataString.length()-1) == 'a'){
-           dataString[dataStringIndex++] = tempDataString.substring(0,2) + tempDataString.substring(3,5);
+           dataString[dataStringIndex++] = tempDataString.substring(0,2) + tempDataString.substring(3,5) + tempDataString.substring(6,tempDataString.indexOf("a"));
            tempDataString = "";
            Serial.println("add data:" + dataString[dataStringIndex-1]);
            Serial.println(getKoreaTime());
