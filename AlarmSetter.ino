@@ -15,16 +15,13 @@ String tempDataString;
 String dataString[50];
 String ssid = "107-408";
 String pass = "72077207";
-const int SET_TIME = 10;
 const int SSID_ADDR = 1;
-const int PASS_ADDR = 30;
-const int SSID_SIZE_ADDR = 29;
-const int PASS_SIZE_ADDR = 50;
+const int PASS_ADDR = 50;
+const int SSID_SIZE_ADDR = 100;
+const int PASS_SIZE_ADDR = 110;
 const int STATE_ADDR = 0;
-const int TIME_DATA_COUNT_ADDR = 51; //flag사용해서 저장 예정
-const int FIRST_TIME_DATA_ADDR = 52; //12칸씩 사용예정
-const int relayPin = 16;
-
+const int relayPin = 10;
+const int SET_TIME = 10;
 int deviceActive;
 int preDeviceActive = 0;
 int i;
@@ -144,7 +141,7 @@ void savepage() {
     EEPROM.commit();
     delay(100);
     Web.send(200,"text/html",temp);
-    delay(10000);
+    delay(5000);
   EspClass esp;
   esp.restart(); 
   
@@ -241,28 +238,27 @@ void initialSetting() {
     int minute = timeData.substring(20,22).toInt();
     hour <10 ? returnString +="0"+String(hour) : returnString += String(hour);
     minute < 10 ? returnString+="0"+String(minute):returnString += String(minute);
-    if(timeData.equals(0,3) == "Mon"){
+    if(timeData.substring(0,3).equals("Mon")){
       day = "0";
     }
-    else if(timeData.equals(0,3) == "Tue"){
+    else if(timeData.substring(0,3).equals("Tue")){
       day = "1";
     }
-    else if(timeData.equals(0,3) == "Wed"){
+    else if(timeData.substring(0,3).equals("Wed")){
       day = "2";
     }
-    else if(timeData.equals(0,3) == "Thu"){
+    else if(timeData.substring(0,3).equals("Thu")){
       day = "3";
     }
-    else if(timeData.equals(0,3) == "Fri"){
+    else if(timeData.substring(0,3).equals("Fri")){
       day = "4";
     }
-    else if(timeData.equals(0,3) == "Sat"){
+    else if(timeData.substring(0,3).equals("Sat")){
       day = "5";
     }
-    else if(timeData.equals(0,3) == "Sun"){
+    else if(timeData.substring(0,3).equals("Sun")){
       day = "6";
     }
-   
     return returnString+day;
   }
 
@@ -375,7 +371,7 @@ void setup() {
 
   void loop() {
     // 메인루프입니다
-    if(EEPROM.read(STATE_ADDR) != 40) {
+    if(EEPROM.read(0) != 40) {
       Web.handleClient();
     } else {
       while(!client.connected()) {
@@ -403,14 +399,15 @@ void setup() {
            }
           
           else if(tempDataString.charAt(tempDataString.length()-1) == 'r'){
-            if(searchDataAndDelete(tempDataString.substring(0,2) + tempDataString.substring(3,5) + tempDataString.substring(6,tempDataString.indexOf("a")) == 1){
+            if(searchDataAndDelete(tempDataString.substring(0,2) + tempDataString.substring(3,5)) == 1){
               Serial.println("sucess!! Delete:" + tempDataString);
               tempDataString = "";
             }
           }
-         
+          
+          
          else if(tempDataString.charAt(tempDataString.length()-1) == 'a'){
-           dataString[dataStringIndex++] = tempDataString.substring(0,2) + tempDataString.substring(3,5) + tempDataString.substring(6,tempDataString.indexOf("a"));
+           dataString[dataStringIndex++] = tempDataString.substring(0,2) + tempDataString.substring(3,5);
            tempDataString = "";
            Serial.println("add data:" + dataString[dataStringIndex-1]);
            Serial.println(getKoreaTime());
